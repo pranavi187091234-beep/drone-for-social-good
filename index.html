@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Drones for Social Good</title>
+  <meta name="description" content="A Grade 9 PBL project at The Indian International School, DSO. A 3D demonstration of how a generic camera drone and a simple alert system could help a school find water leaks.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23e9a800'/%3E%3Cpath d='M8 3 C8 3 4 7.5 4 10 a4 4 0 0 0 8 0 C12 7.5 8 3 8 3z' fill='%230d1520'/%3E%3C/svg%3E">
+
+  <!-- Runs before the CSS paints, so the page never flashes the wrong theme.
+       1. Theme: use the saved choice, otherwise the device setting.
+       2. Motion: add class "motion" only when animation is welcome, otherwise "reduced".
+          All pinning and fading in the CSS needs html.motion, so with no class at all
+          (no JavaScript) the page is a plain stacked page.
+          Testing switch: add ?reduce-motion to the address to force the reduced version. -->
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var theme = null;
+      try { theme = localStorage.getItem('dfsg-theme'); } catch (e) { /* storage may be blocked */ }
+      if (theme !== 'light' && theme !== 'dark') {
+        theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      root.dataset.theme = theme;
+      var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches ||
+        new URLSearchParams(location.search).has('reduce-motion');
+      root.classList.add(reduced ? 'reduced' : 'motion');
+    })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- The 3D scene. Fixed behind everything; script.js draws into it. -->
+  <canvas id="scene" role="img" aria-label="A 3D model of a school campus: a road, trees, a school building, a garden and three water tanks, with a generic camera drone flying above. The view changes as you scroll. It is a demonstration, not a live picture.">
+    A 3D model of a school campus with a road, trees, a building, a garden and three water tanks, and a generic camera drone flying above.
+  </canvas>
+
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header id="topbar">
+    <a class="brand" href="#hero"><span class="brand-mark" aria-hidden="true"></span><span class="brand-text">Drones for Social Good</span></a>
+    <nav aria-label="Sections">
+      <ul>
+        <li><a href="#plan">Plan</a></li>
+        <li><a href="#inside">Drone</a></li>
+        <li><a href="#demo">Demo</a></li>
+        <li><a href="#app-panel">App</a></li>
+        <li><a href="#safety">Safety</a></li>
+        <li><a href="#parts">Parts</a></li>
+        <li><a href="#answer">Answer</a></li>
+      </ul>
+    </nav>
+    <!-- The sun and moon icon is drawn by CSS, so script.js may replace the text freely. -->
+    <button id="theme-toggle" type="button" aria-label="Switch colour theme">Theme</button>
+  </header>
+
+  <!-- Filled in by script.js when the simulator (or a real sensor) reports a drop. -->
+  <div id="alert-badge" hidden role="status"></div>
+
+  <main id="main" tabindex="-1">
+
+    <!-- ========== 1. Hero ========== -->
+    <section id="hero" class="section flow" data-section="hero" aria-labelledby="hero-title">
+      <div class="panel hero-panel">
+        <p class="hero-eyebrow">Technology for Good · PBL 2026–27 · Grade 9</p>
+        <h1 id="hero-title">Drones for Social Good</h1>
+        <p class="school">The Indian International School, DSO</p>
+        <p class="hero-note">An idea for finding water leaks at school, shown in 3D. The drone and the alerts on this page are a demonstration.</p>
+        <a class="scroll-cue" href="#question">Scroll to start<span class="scroll-cue-arrow" aria-hidden="true"></span></a>
+      </div>
+    </section>
+
+    <!-- ========== 2. Big question ========== -->
+    <section id="question" class="section flow" data-section="question" aria-labelledby="question-title">
+      <div class="panel panel-statement reveal">
+        <p class="eyebrow"><span class="eyebrow-num">02</span> <span class="eyebrow-sep">/</span> Big question</p>
+        <h2 id="question-title" class="statement">How can drone technology be used to solve real-world challenges in schools by <span class="mark">conserving water resources</span>?</h2>
+      </div>
+    </section>
+
+    <!-- ========== 3. Our focus ========== -->
+    <section id="focus" class="section flow" data-section="focus" aria-labelledby="focus-title">
+      <div class="panel reveal">
+        <p class="eyebrow"><span class="eyebrow-num">03</span> <span class="eyebrow-sep">/</span> Our focus</p>
+        <h2 id="focus-title">Water conservation</h2>
+        <p class="lead">Leaks can go unnoticed on large campuses.</p>
+        <p>A school has many tanks and pipes. Some sit on roofs or behind gardens, where nobody walks past every day, so a slow drip can keep going until someone happens to see it.</p>
+        <p>Our project shows how a cheap camera drone could help people check these places, and how an alert could reach the team when a drop is detected.</p>
+        <ul class="tank-strip" aria-label="The three water tanks in our model">
+          <li><strong>Tank 1</strong> On the roof</li>
+          <li><strong>Tank 2</strong> By the garden</li>
+          <li><strong>Tank 3</strong> By the irrigation line</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ========== 4. Inspection plan (pinned) ========== -->
+    <section id="plan" class="section pin" data-section="plan" aria-labelledby="plan-title">
+      <div class="pin-stage">
+        <div class="panel pin-panel" role="group" aria-labelledby="plan-title" tabindex="0">
+          <div class="panel-head">
+            <p class="eyebrow"><span class="eyebrow-num">04</span> <span class="eyebrow-sep">/</span> Inspection plan</p>
+            <div class="pin-dots" aria-hidden="true"><span class="is-active"></span><span></span><span></span><span></span></div>
+          </div>
+          <h2 id="plan-title">Four places to check</h2>
+          <div class="pin-steps">
+            <article class="pin-step is-active">
+              <p class="step-index">Card 1 of 4</p>
+              <h3>Water tanks</h3>
+              <dl class="spec">
+                <div><dt>What we check</dt><dd>The sides and base of each tank, and the pipe joints around it.</dd></div>
+                <div><dt>What the drone looks for</dt><dd>Wet patches, drips, dark stains on the ground, and cracks or loose fittings.</dd></div>
+                <div><dt>How often</dt><dd class="example">Example: once a week (team to confirm)</dd></div>
+              </dl>
+            </article>
+            <article class="pin-step">
+              <p class="step-index">Card 2 of 4</p>
+              <h3>Irrigation</h3>
+              <dl class="spec">
+                <div><dt>What we check</dt><dd>The irrigation line from Tank 3 and its small sprinkler risers.</dd></div>
+                <div><dt>What the drone looks for</dt><dd>Puddles along the pipe, a sprinkler that will not stop, and grass much greener than the grass around it.</dd></div>
+                <div><dt>How often</dt><dd class="example">Example: once a week (team to confirm)</dd></div>
+              </dl>
+            </article>
+            <article class="pin-step">
+              <p class="step-index">Card 3 of 4</p>
+              <h3>Garden areas</h3>
+              <dl class="spec">
+                <div><dt>What we check</dt><dd>The soil and raised beds in the garden, next to Tank 2.</dd></div>
+                <div><dt>What the drone looks for</dt><dd>Soil that stays wet when it should be dry, and beds that look drier than the others.</dd></div>
+                <div><dt>How often</dt><dd class="example">Example: twice a week (team to confirm)</dd></div>
+              </dl>
+            </article>
+            <article class="pin-step">
+              <p class="step-index">Card 4 of 4</p>
+              <h3>Rooftop tanks</h3>
+              <dl class="spec">
+                <div><dt>What we check</dt><dd>Tank 1 on the roof, its lid and its overflow pipe. People rarely see these.</dd></div>
+                <div><dt>What the drone looks for</dt><dd>Water on the roof, marks left by overflowing water, and a lid out of place.</dd></div>
+                <div><dt>How often</dt><dd class="example">Example: once a month (team to confirm)</dd></div>
+              </dl>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 5. Inside the drone (pinned) ========== -->
+    <section id="inside" class="section pin" data-section="inside" aria-labelledby="inside-title">
+      <div class="pin-stage">
+        <div class="panel pin-panel" role="group" aria-labelledby="inside-title" tabindex="0">
+          <div class="panel-head">
+            <p class="eyebrow"><span class="eyebrow-num">05</span> <span class="eyebrow-sep">/</span> Inside the drone</p>
+            <div class="pin-dots" aria-hidden="true"><span class="is-active"></span><span></span><span></span><span></span></div>
+          </div>
+          <h2 id="inside-title">From the drone to the app</h2>
+          <div class="pin-steps">
+            <article class="pin-step is-active">
+              <p class="step-index">Card 1 of 4</p>
+              <h3>The drone</h3>
+              <p class="tag">Shown for demonstration</p>
+              <p>A generic camera quadcopter with four rotors, the kind of cheap drone a school could buy. We do not assume it has a programming interface, so nothing on this website controls a real drone. It is a demo only.</p>
+            </article>
+            <article class="pin-step">
+              <p class="step-index">Card 2 of 4</p>
+              <h3>The ESP board</h3>
+              <p class="tag">ESP board (demo)</p>
+              <p>A small green circuit board under the drone in our model. It is a labelled demo part that shows where a small computer could sit. In the code, a function called <code>readTankSensor()</code> marks the place where a real sensor reading would go.</p>
+            </article>
+            <article class="pin-step">
+              <p class="step-index">Card 3 of 4</p>
+              <h3>The camera</h3>
+              <p>A small camera under the front of the drone. It lets an adult pilot look closely at tanks, pipes and soil from above. Faces are blurred before any photos are shared.</p>
+            </article>
+            <article class="pin-step">
+              <p class="step-index">Card 4 of 4</p>
+              <h3>How the alert travels</h3>
+              <ol class="journey">
+                <li><strong>Water sensor at the tank:</strong> notices a drop</li>
+                <li><strong>ESP board:</strong> reads the sensor</li>
+                <li><strong>Wi-Fi:</strong> carries the message</li>
+                <li><strong>Laptop receiver:</strong> stores the alert</li>
+                <li><strong>App on phone or laptop:</strong> shows the alert</li>
+              </ol>
+              <p class="note">In this demo, the website's simulator stands in for the sensor and the ESP board.</p>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 6. Live alert demo (pinned, the key section) ========== -->
+    <section id="demo" class="section pin" data-section="demo" aria-labelledby="demo-title">
+      <div class="pin-stage">
+        <div class="panel pin-panel" role="group" aria-labelledby="demo-title">
+          <div class="panel-head">
+            <p class="eyebrow"><span class="eyebrow-num">06</span> <span class="eyebrow-sep">/</span> Live alert demo</p>
+            <div class="pin-dots" aria-hidden="true"><span class="is-active"></span><span></span><span></span></div>
+          </div>
+          <h2 id="demo-title">One drop, one alert</h2>
+          <div class="pin-steps">
+            <div class="pin-step is-active">
+              <h3><span class="step-num">1.</span> The camera moves to Tank 2</h3>
+              <p>Tank 2 stands by the garden. The drone hovers just above it.</p>
+            </div>
+            <div class="pin-step">
+              <h3><span class="step-num">2.</span> A drop falls</h3>
+              <p>As you scroll, a preview drop falls from the tank. Scrolling on its own never sends an alert.</p>
+            </div>
+            <div class="pin-step">
+              <h3><span class="step-num">3.</span> The alert goes to the app</h3>
+              <p>Press Simulate drop. A red badge appears and a message goes to the app panel below, marked as coming from the simulator.</p>
+            </div>
+          </div>
+          <div class="preview-slot">
+            <div id="preview-chip" hidden>Preview only. Press Simulate drop to send a demo alert.</div>
+          </div>
+          <div class="demo-actions">
+            <button id="simulate-drop" class="btn btn-primary" type="button">Simulate drop</button>
+            <button id="reset-sim" class="btn btn-ghost" type="button">Reset</button>
+          </div>
+          <p id="send-status" aria-live="polite">No demo alert sent yet.</p>
+          <p id="auto-status">The automatic simulator is on. It fires at a random moment every 60 to 120 seconds.</p>
+          <p id="sim-hint" class="hint">Reset stops the simulated leak on this page. Alerts already sent stay in the app until someone clears them.</p>
+          <noscript><p class="note">The simulator needs JavaScript to run.</p></noscript>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== Cinematic short (pinned, no visible text when motion is on) ========== -->
+    <section id="film" class="section pin" data-section="film" aria-labelledby="film-title">
+      <h2 id="film-title" class="sr-only">Short film: one drop at dawn</h2>
+      <p id="film-description" class="sr-only">This is a short dramatised film of our demo, made with the 3D model and without any words. It is not footage of a real flight or a real leak. First, it is dawn over the school, black bars slide in from the top and bottom of the picture, and the light warms up. Second, the camera drone takes off from the grass and rises over the campus, and the ESP board on its underside blinks once. Third, the drone flies past the school building and the road, banking gently. Fourth, it hovers over Tank 2 by the garden, where a single drop forms at the base of the tank, falls, lands on the soil, and sends out a small ring. Fifth, the light on the ESP board turns red, and a thin red line of light travels from the drone to a small phone icon at the side of the picture, which stands for the app receiving the alert. Sixth, the camera pushes in on the red ring, then pulls back and up to a wide view of the campus at sunset, and the black bars slide away.</p>
+      <div class="pin-stage">
+        <!-- Visual overlays, all hidden from screen readers and from the mouse. -->
+        <div class="film-vignette" aria-hidden="true"></div>
+        <div class="film-grain" aria-hidden="true"></div>
+
+        <!-- The red alert line. The script sets x1/y1/x2/y2 in screen pixels, and fades it using
+             the opacity attribute or style (both start at 0 so nothing shows before it travels). -->
+        <svg id="film-line" aria-hidden="true" focusable="false">
+          <line id="film-line-glow" x1="0" y1="0" x2="0" y2="0" opacity="0"></line>
+          <line id="film-line-core" x1="0" y1="0" x2="0" y2="0" opacity="0"></line>
+          <circle id="film-line-head" cx="0" cy="0" r="5" opacity="0"></circle>
+        </svg>
+
+        <div id="film-app-icon" aria-hidden="true">
+          <svg viewBox="0 0 32 32" focusable="false">
+            <rect class="phone-body" x="9" y="3" width="14" height="26" rx="3"></rect>
+            <rect class="phone-screen" x="11.5" y="7" width="9" height="16" rx="1"></rect>
+            <circle class="phone-dot" cx="16" cy="26" r="1"></circle>
+          </svg>
+        </div>
+
+        <div class="letterbox letterbox-top" aria-hidden="true"></div>
+        <div class="letterbox letterbox-bottom" aria-hidden="true"></div>
+
+        <!-- Shown only with reduced motion: four still frames, moved by hand. -->
+        <div id="film-stills" class="panel">
+          <p class="eyebrow"><span class="eyebrow-num">Film</span> <span class="eyebrow-sep">/</span> Four still frames from a dramatised demo</p>
+          <figure>
+            <img id="film-still" alt="">
+            <figcaption id="film-still-caption"></figcaption>
+          </figure>
+          <div class="still-controls">
+            <button id="still-prev" class="btn btn-ghost" type="button">Previous</button>
+            <span id="still-counter" aria-live="polite"></span>
+            <button id="still-next" class="btn btn-ghost" type="button">Next</button>
+          </div>
+        </div>
+        <noscript>
+          <div class="panel"><p>The short film needs JavaScript to play. It shows a dramatised demo: a drone rises at dawn, a drop falls from Tank 2, and a red line carries the alert to the app.</p></div>
+        </noscript>
+      </div>
+    </section>
+
+    <!-- ========== 7. Our app ========== -->
+    <section id="app-panel" class="section flow" data-section="app-panel" aria-labelledby="app-title">
+      <div class="panel panel-wide reveal">
+        <p class="eyebrow"><span class="eyebrow-num">07</span> <span class="eyebrow-sep">/</span> Live alert feed</p>
+        <div id="feed-banner" role="alert" hidden></div>
+        <div class="app-grid">
+          <div class="app-intro">
+            <h2 id="app-title">Our app</h2>
+            <p id="feed-intro">What you see here is live data from the receiver running on the laptop. If the receiver is off, this feed stays empty. Nothing is made up.</p>
+            <p>Every alert says whether it came from the simulator or a real sensor, so nobody mistakes a demo for a real detection.</p>
+            <a id="open-app" class="btn btn-primary" href="/app">Open the full app (phone or laptop)</a>
+          </div>
+          <div class="app-feed">
+            <div id="feed-tanks"></div>
+            <ul id="feed-list" tabindex="0" aria-label="Live alert feed">
+              <li class="feed-empty">No alerts yet.</li>
+            </ul>
+            <p id="feed-status" aria-live="polite">Checking the receiver for live alerts.</p>
+            <noscript><p class="note">The live feed needs JavaScript to run.</p></noscript>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 8. Safety and ethics ========== -->
+    <section id="safety" class="section flow" data-section="safety" aria-labelledby="safety-title">
+      <div class="panel panel-wide reveal">
+        <p class="eyebrow"><span class="eyebrow-num">08</span> <span class="eyebrow-sep">/</span> Safety and ethics</p>
+        <h2 id="safety-title">People first, drone second</h2>
+        <p class="lead-small">The drone on this website is a 3D model. If a real one is ever flown at school, these rules come first.</p>
+        <div class="rule-grid">
+          <article>
+            <h3>Flight rules</h3>
+            <p>We follow local drone rules and the school's permission. If the rules or the weather say no, we do not fly.</p>
+          </article>
+          <article>
+            <h3>Adult pilot and spotter</h3>
+            <p>An adult pilot controls the drone, and a spotter keeps watching the drone and the area around it.</p>
+          </article>
+          <article>
+            <h3>Approval first</h3>
+            <p>No flight happens without approval from the school. Approval: <span class="placeholder">[Approval reference]</span></p>
+          </article>
+          <article>
+            <h3>Privacy</h3>
+            <p>Faces are blurred before photos are shared. We only use pictures that help us check tanks, pipes and gardens.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 9. Parts list ========== -->
+    <section id="parts" class="section flow" data-section="parts" aria-labelledby="parts-title">
+      <div class="panel reveal">
+        <p class="eyebrow"><span class="eyebrow-num">09</span> <span class="eyebrow-sep">/</span> Parts list</p>
+        <h2 id="parts-title">What we need</h2>
+        <table class="parts-table">
+          <caption>Parts for the project. The team will fill in the marked placeholders.</caption>
+          <thead>
+            <tr><th scope="col">Part</th><th scope="col">Quantity</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>A generic camera drone</td><td><span class="placeholder">[×N]</span></td></tr>
+            <tr><td>An ESP board</td><td><span class="placeholder">[×N]</span></td></tr>
+            <tr><td>Water sensor, type: <span class="placeholder">[type]</span></td><td><span class="placeholder">[×N]</span></td></tr>
+            <tr><td>Wires</td><td><span class="placeholder">[×N]</span></td></tr>
+            <tr><td>Power bank</td><td><span class="placeholder">[×N]</span></td></tr>
+            <tr><td>Laptop</td><td><span class="placeholder">[×N]</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ========== 10. Our answer ========== -->
+    <section id="answer" class="section flow" data-section="answer" aria-labelledby="answer-title">
+      <div class="answer-layout">
+        <div class="panel panel-statement reveal">
+          <p class="eyebrow"><span class="eyebrow-num">10</span> <span class="eyebrow-sep">/</span> Our answer</p>
+          <h2 id="answer-title">A drone can help a school look after its water</h2>
+          <p class="lead-small">This project is a demo, so these are our aims, not measured results.</p>
+        </div>
+        <div class="answer-cards">
+          <article class="panel reveal">
+            <h3>Safer</h3>
+            <p>A drone can look at rooftop tanks and high pipes from the air, so people do not need to climb up just to check them.</p>
+          </article>
+          <article class="panel reveal">
+            <h3>Smarter</h3>
+            <p>Regular inspections can show the team where to look first, so their time goes to the tanks, pipes and garden beds that need it.</p>
+          </article>
+          <article class="panel reveal">
+            <h3>More responsive</h3>
+            <p>An alert can reach the app on a phone or laptop when a sensor reports a drop. This aims to help someone act on a leak sooner.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ========== 11. Footer ========== -->
+  <footer>
+    <p>Drones for Social Good · Grade 9 · Technology for Good · PBL 2026–27 · The Indian International School, DSO</p>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- If script.js cannot load, drop back to the plain stacked page so nothing stays hidden. -->
+  <script src="script.js" onerror="document.documentElement.classList.remove('motion')"></script>
+</body>
+</html>

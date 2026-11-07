@@ -1,0 +1,1436 @@
+/* =====================================================================
+   Drones for Social Good: page styles
+
+   How this file is organised
+   1. Colours and sizes (variables)
+   2. Base elements
+   3. Top bar, skip link, alert badge
+   4. Panels and type (the look of the site)
+   5. Section layouts: these are the plain stacked page
+   6. Buttons, pills, placeholders
+   7. App panel feed
+   8. Film stills (reduced motion)
+   9. html.motion: pinning, fades and the film overlays
+   10. Narrow screens
+
+   The default page, with no class on <html>, is plain and stacked.
+   Everything that pins, hides or animates is written under html.motion,
+   which the small script in <head> adds only when motion is welcome.
+
+   Classes script.js can use for what it creates in the app panel:
+     #feed-tanks children:  .tank-chip with data-status="OK", "Error" or "No data"
+     #feed-list children:   <li class="feed-item"> (add .is-cleared when cleared)
+                            .feed-empty for the "No alerts yet." row
+     inside a feed item:    .feed-time  .feed-device  .feed-tank  .feed-event
+     pills:                 .pill plus .pill-sim, .pill-real, .pill-red,
+                            .pill-amber or .pill-green
+   ===================================================================== */
+
+/* ---------- 1. Colours and sizes ---------- */
+:root {
+  --bg: #eef2f6;
+  --text: #0d1520;
+  --accent: #e9a800;
+  --muted: #465263;             /* above 6:1 even if a dark scene shows through the panel */
+  --surface: rgba(255, 255, 255, 0.95);
+  --surface-solid: #ffffff;
+  --line: rgba(13, 21, 32, 0.16);
+  --line-strong: rgba(13, 21, 32, 0.32);
+  --focus: #0d1520;
+  --on-accent: #0d1520;
+
+  --red: #d42020;
+  --amber: #c26a00;
+  --green: #15803d;
+
+  --topbar: 64px;
+  --gutter: clamp(12px, 4vw, 64px);
+  --pad: clamp(1.1rem, 2.4vw, 2.25rem);
+  --panel-w: 44rem;              /* narrow screens; wide screens override this */
+  --panel-wide: 44rem;
+  --statement-w: 44rem;
+  --hero-w: 44rem;
+  --heading: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --body: "Inter", "Segoe UI", system-ui, sans-serif;
+
+  color-scheme: light;
+}
+
+/* Same values as the dark theme below, for visitors with JavaScript off. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --bg: #060a13;
+    --text: #eef3fa;
+    --accent: #ffc61a;
+    --muted: #b3bfcf;
+    --surface: rgba(14, 20, 33, 0.94);
+    --surface-solid: #0e1421;
+    --line: rgba(238, 243, 250, 0.18);
+    --line-strong: rgba(238, 243, 250, 0.36);
+    --focus: #eef3fa;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #060a13;
+  --text: #eef3fa;
+  --accent: #ffc61a;
+  --muted: #b3bfcf;              /* still above 4.5:1 if a bright scene shows through the panel */
+  --surface: rgba(14, 20, 33, 0.90);
+  --surface-solid: #0e1421;
+  --line: rgba(238, 243, 250, 0.18);
+  --line-strong: rgba(238, 243, 250, 0.36);
+  --focus: #eef3fa;
+  color-scheme: dark;
+}
+
+@media (min-width: 900px) {
+  :root {
+    /* Panels stay on the left half, so the 3D subject shows on the right. */
+    --panel-w: min(38rem, 46vw);
+    --panel-wide: min(68rem, 100%);
+    --statement-w: min(52rem, 66vw);
+    --hero-w: min(44rem, 48vw);
+  }
+}
+
+/* ---------- 2. Base elements ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: clamp(1rem, 0.96rem + 0.2vw, 1.0625rem);
+  line-height: 1.55;
+  overflow-x: clip;              /* a safety net; clip does not break sticky */
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  margin: 0;
+  font-family: var(--heading);
+  text-wrap: balance;
+  overflow-wrap: break-word;
+}
+
+h1 {
+  font-size: clamp(2.75rem, 6.4vw, 6rem);
+  font-weight: 700;
+  line-height: 0.96;
+  letter-spacing: -0.035em;
+}
+
+h2 {
+  font-size: clamp(1.75rem, 3.6vw, 3.25rem);
+  font-weight: 600;
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+}
+
+h3 {
+  font-size: clamp(1.2rem, 1.7vw, 1.5rem);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.012em;
+}
+
+p { margin: 0; }
+ul, ol { margin: 0; padding: 0; }
+img, svg { display: block; }
+
+a { color: inherit; text-underline-offset: 0.18em; }
+
+code {
+  font-family: Consolas, "SFMono-Regular", Menlo, monospace;
+  font-size: 0.92em;
+  padding: 0.05em 0.3em;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  overflow-wrap: anywhere;
+}
+
+::selection { background: var(--accent); color: var(--on-accent); }
+
+/* The hidden attribute must always win over display rules below. */
+[hidden] { display: none !important; }
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+main:focus { outline: none; }
+
+/* Keeps a focused control clear of the fixed top bar when tabbing. */
+a, button, [tabindex] { scroll-margin-block: calc(var(--topbar) + 1rem); }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The 3D scene sits behind everything. */
+#scene {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: 100vh;
+  height: 100lvh;
+}
+
+/* If WebGL fails, script.js adds html.no-webgl and hides the canvas. */
+html.no-webgl #scene { display: none; }
+
+main, footer { position: relative; z-index: 1; }
+
+/* ---------- 3. Top bar, skip link, alert badge ---------- */
+.skip-link {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+  transform: translateY(-200%);
+}
+
+.skip-link:focus { transform: none; }
+
+#topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  height: var(--topbar);
+  padding-inline: var(--gutter);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  min-height: 44px;
+  font-family: var(--heading);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+
+.brand-mark {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  background: var(--accent);
+  transform: rotate(45deg);
+}
+
+.brand-text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+#topbar nav { display: none; }
+
+#topbar nav ul {
+  display: flex;
+  gap: 0.25rem;
+  list-style: none;
+}
+
+#topbar nav a {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: 0.7rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+/* A short accent bar marks the nav link for the section on screen. */
+#topbar nav a::after {
+  content: "";
+  position: absolute;
+  left: 0.7rem;
+  right: 0.7rem;
+  bottom: 6px;
+  height: 3px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+#topbar nav a:hover::after,
+body[data-active-section="plan"] #topbar nav a[href="#plan"]::after,
+body[data-active-section="inside"] #topbar nav a[href="#inside"]::after,
+body[data-active-section="demo"] #topbar nav a[href="#demo"]::after,
+body[data-active-section="app-panel"] #topbar nav a[href="#app-panel"]::after,
+body[data-active-section="safety"] #topbar nav a[href="#safety"]::after,
+body[data-active-section="parts"] #topbar nav a[href="#parts"]::after,
+body[data-active-section="answer"] #topbar nav a[href="#answer"]::after {
+  transform: none;
+}
+
+@media (min-width: 1000px) {
+  #topbar nav { display: block; }
+}
+
+#theme-toggle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.4rem 0.8rem;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font: 500 0.875rem/1 var(--body);
+  cursor: pointer;
+}
+
+#theme-toggle:hover { border-color: var(--text); }
+
+/* A half-filled circle: light on one side, dark on the other. It flips with the theme. */
+#theme-toggle::before {
+  content: "";
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  background: linear-gradient(90deg, currentColor 50%, transparent 50%);
+}
+
+:root[data-theme="dark"] #theme-toggle::before {
+  background: linear-gradient(270deg, currentColor 50%, transparent 50%);
+}
+
+#alert-badge {
+  position: fixed;
+  top: calc(var(--topbar) + 12px);
+  right: var(--gutter);
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  max-width: calc(100% - 2 * var(--gutter));
+  padding: 0.6rem 0.9rem;
+  background: var(--red);
+  color: #ffffff;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.3;
+  box-shadow: 0 6px 24px rgba(6, 10, 19, 0.35);
+}
+
+#alert-badge::before {
+  content: "";
+  flex: none;
+  width: 10px;
+  height: 10px;
+  background: #ffffff;
+  border-radius: 50%;
+}
+
+/* ---------- 4. Panels and type ---------- */
+
+/* Every block of text sits on a near-opaque surface, so contrast holds
+   whatever the 3D scene is showing behind it. */
+.panel {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  padding: var(--pad);
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+/* The site's signature: camera viewfinder brackets on panel corners. */
+.panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 26px;
+  height: 26px;
+  border-top: 3px solid var(--accent);
+  border-left: 3px solid var(--accent);
+  pointer-events: none;
+}
+
+.panel:not(.pin-panel)::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 26px;
+  height: 26px;
+  border-right: 3px solid var(--accent);
+  border-bottom: 3px solid var(--accent);
+  pointer-events: none;
+}
+
+.panel > * + * { margin-top: 1rem; }
+.panel > h2 { margin-top: 0.75rem; }
+
+.eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem 0.45rem;
+  font-family: var(--heading);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.eyebrow-num {
+  padding: 0.12em 0.45em;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+}
+
+.eyebrow-sep { color: var(--muted); }
+
+.panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
+.lead {
+  font-family: var(--heading);
+  font-size: clamp(1.2rem, 1.9vw, 1.6rem);
+  font-weight: 500;
+  line-height: 1.22;
+  letter-spacing: -0.012em;
+}
+
+.lead-small {
+  max-width: 44rem;
+  font-size: 1.0625em;
+}
+
+.note,
+.hint,
+#auto-status,
+.step-index {
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.step-index {
+  font-family: var(--heading);
+  font-weight: 500;
+}
+
+.step-num { font-weight: 700; }
+
+/* Hero */
+.hero-panel {
+  max-width: var(--hero-w);
+  border-top: 6px solid var(--accent);
+}
+
+.hero-panel::before { display: none; }
+
+.hero-eyebrow {
+  font-family: var(--heading);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.hero-panel h1 { margin-top: 0.85rem; }
+
+.school {
+  font-family: var(--heading);
+  font-size: clamp(1.05rem, 1.6vw, 1.35rem);
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.hero-note {
+  max-width: 36rem;
+  color: var(--muted);
+}
+
+.scroll-cue {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.scroll-cue:hover { text-decoration: underline; }
+
+.scroll-cue-arrow {
+  display: block;
+  width: 10px;
+  height: 10px;
+  margin-top: -4px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+}
+
+/* Big question */
+.panel-statement { max-width: var(--statement-w); }
+
+.statement {
+  font-size: clamp(1.5rem, 3.1vw, 2.75rem);
+  font-weight: 500;
+  line-height: 1.12;
+  text-wrap: pretty;
+}
+
+/* Accent is used as a thick underline here, never as the colour of the text. */
+.mark {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 0.12em;
+  text-underline-offset: 0.14em;
+}
+
+/* Tanks row in "Our focus" */
+.tank-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--line-strong);
+}
+
+.tank-strip li {
+  padding: 0.7rem 0.75rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+.tank-strip li + li {
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--line);
+}
+
+.tank-strip strong {
+  display: block;
+  font-family: var(--heading);
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+/* The three-row table on the plan cards */
+.spec { margin: 0.85rem 0 0; }
+
+.spec > div {
+  display: grid;
+  grid-template-columns: minmax(0, 8.5rem) minmax(0, 1fr);
+  gap: 0.2rem 1rem;
+  padding-block: 0.65rem;
+  border-top: 1px solid var(--line);
+}
+
+.spec dt {
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.35;
+  padding-top: 0.12rem;
+}
+
+.spec dd {
+  margin: 0;
+  line-height: 1.42;
+}
+
+.spec .example { font-weight: 600; }
+
+/* Small outlined label, such as "Shown for demonstration" */
+.tag {
+  display: inline-block;
+  margin-top: 0.6rem;
+  padding: 0.2em 0.6em;
+  border: 1.5px solid var(--accent);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.pin-step > h3 + p:not(.tag) { margin-top: 0.5rem; }
+.pin-step > .tag + p { margin-top: 0.65rem; }
+.pin-step > .step-index + h3 { margin-top: 0.3rem; }
+
+/* The alert's journey, drawn as a route with stops */
+.journey {
+  margin-top: 0.75rem;
+  list-style: none;
+  font-size: 0.9375rem;
+  line-height: 1.35;
+}
+
+.journey li {
+  position: relative;
+  padding: 0.22rem 0 0.22rem 1.4rem;
+}
+
+.journey li::before {
+  content: "";
+  position: absolute;
+  top: 0.55rem;
+  left: 0;
+  width: 9px;
+  height: 9px;
+  background: var(--accent);
+  transform: rotate(45deg);
+}
+
+.journey li + li::after {
+  content: "";
+  position: absolute;
+  top: -0.3rem;
+  left: 4px;
+  height: 0.8rem;
+  border-left: 1px solid var(--line-strong);
+}
+
+.journey strong { font-weight: 600; }
+
+.journey + .note { margin-top: 0.7rem; }
+
+/* Safety cards */
+.rule-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  margin-top: 1.5rem;
+}
+
+.rule-grid article {
+  padding-block: 1rem;
+  border-top: 1px solid var(--line-strong);
+}
+
+.rule-grid article p { margin-top: 0.4rem; }
+
+@media (min-width: 700px) {
+  .rule-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: clamp(1.5rem, 4vw, 3.5rem);
+  }
+}
+
+/* Parts table */
+.parts-table {
+  width: 100%;
+  margin-top: 1.25rem;
+  border-collapse: collapse;
+}
+
+.parts-table caption {
+  padding-bottom: 0.75rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  text-align: left;
+}
+
+.parts-table th,
+.parts-table td {
+  padding: 0.65rem 0.5rem 0.65rem 0;
+  border-top: 1px solid var(--line);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.parts-table thead th {
+  border-top: 0;
+  border-bottom: 2px solid var(--text);
+  font-family: var(--heading);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.parts-table tr > :last-child {
+  width: 6rem;
+  padding-right: 0;
+  white-space: nowrap;
+}
+
+.parts-table tbody tr:first-child td { border-top: 0; }
+
+/* Answer */
+.answer-layout {
+  display: grid;
+  gap: clamp(1rem, 2vw, 1.5rem);
+  width: 100%;
+  max-width: 80rem;
+  min-width: 0;
+}
+
+.answer-cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(1rem, 2vw, 1.5rem);
+}
+
+.answer-cards h3 {
+  font-size: clamp(1.6rem, 2.6vw, 2.25rem);
+  letter-spacing: -0.025em;
+  line-height: 1.05;
+}
+
+.answer-cards .panel > * + * { margin-top: 0.75rem; }
+
+@media (min-width: 900px) {
+  .answer-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .answer-cards .panel { padding-top: clamp(2.5rem, 6vw, 5rem); }
+}
+
+/* Footer */
+footer {
+  padding: 1.5rem var(--gutter);
+  background: var(--surface-solid);
+  border-top: 3px solid var(--accent);
+}
+
+footer p {
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+/* ---------- 5. Section layouts: the plain stacked page ---------- */
+.section {
+  padding: clamp(5.5rem, 14vh, 10rem) var(--gutter);
+}
+
+.flow {
+  display: flex;
+  align-items: center;
+  min-height: 100vh;
+  min-height: 100svh;
+}
+
+.flow > .panel { max-width: var(--panel-w); }
+.flow > .panel-statement { max-width: var(--statement-w); }
+.flow > .panel-wide { max-width: var(--panel-wide); }
+.flow > .hero-panel { max-width: var(--hero-w); }
+
+#hero {
+  align-items: flex-end;
+  padding-top: calc(var(--topbar) + 1rem);
+  padding-bottom: clamp(1rem, 5vh, 3.5rem);
+}
+
+/* A pinned section has its space on the stage inside it, not on the section. */
+.pin.section { padding: 0; }
+
+.pin-stage {
+  padding: clamp(5.5rem, 14vh, 10rem) var(--gutter);
+}
+
+.pin-panel { max-width: var(--panel-w); }
+
+/* With no motion, all the steps show in a stack, split by thin lines. */
+.pin-steps {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+  margin-top: 1.1rem;
+}
+
+.pin-step { min-width: 0; }
+
+.pin-step + .pin-step {
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line-strong);
+}
+
+.pin-dots { display: none; }
+
+/* Demo panel parts */
+#preview-chip {
+  padding: 0.45rem 0.7rem;
+  background: var(--amber);
+  color: var(--on-accent);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.demo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+#send-status {
+  font-weight: 500;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+#demo .pin-panel > #auto-status,
+#demo .pin-panel > .hint { margin-top: 0.45rem; }
+
+/* The film overlays do not exist on the plain page. */
+.film-vignette,
+.film-grain,
+.letterbox,
+#film-line,
+#film-app-icon {
+  display: none;
+}
+
+/* ---------- 6. Buttons, pills, placeholders ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 44px;
+  padding: 0.6rem 1.15rem;
+  border: 2px solid transparent;
+  border-radius: 0;
+  font: 600 0.9375rem/1.2 var(--body);
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+
+.btn-primary:hover {
+  box-shadow: inset 0 0 0 2px var(--on-accent);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--text);
+}
+
+.btn-ghost:hover {
+  background: var(--text);
+  color: var(--surface-solid);
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* A small drop shape on the main demo button. */
+#simulate-drop::before {
+  content: "";
+  flex: none;
+  width: 0.62em;
+  height: 0.62em;
+  margin-top: 0.12em;
+  background: currentColor;
+  border-radius: 0 50% 50% 50%;
+  transform: rotate(45deg);
+}
+
+.placeholder {
+  display: inline-block;
+  padding: 0 0.4em;
+  border: 1.5px dashed var(--accent);
+  color: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pill {
+  display: inline-block;
+  padding: 0.14em 0.6em;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.pill-red { background: var(--red); color: #ffffff; }
+.pill-green { background: var(--green); color: #ffffff; }
+.pill-amber,
+.pill-sim { background: var(--amber); color: #0d1520; }
+.pill-real { background: var(--text); color: var(--surface-solid); }
+
+/* ---------- 7. App panel feed ---------- */
+.app-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(1.25rem, 3vw, 3rem);
+}
+
+.app-intro > * + * { margin-top: 0.9rem; }
+.app-intro .btn { margin-top: 1.25rem; }
+
+@media (min-width: 900px) {
+  .app-grid { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); }
+}
+
+#feed-banner {
+  padding: 0.75rem 1rem;
+  background: var(--red);
+  color: #ffffff;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+#feed-tanks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+
+#feed-tanks:empty { display: none; }
+
+/* Written so any child works, and data-status sets the colour.
+   The status must also be written as text inside the chip. */
+#feed-tanks > * {
+  min-width: 0;
+  padding: 0.5rem 0.6rem;
+  border: 2px solid var(--line-strong);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+#feed-tanks > [data-status="OK"] {
+  background: var(--green);
+  border-color: var(--green);
+  color: #ffffff;
+}
+
+#feed-tanks > [data-status="Error"] {
+  background: var(--red);
+  border-color: var(--red);
+  color: #ffffff;
+}
+
+#feed-tanks > [data-status="No data"] {
+  border-color: var(--amber);
+}
+
+#feed-list {
+  max-height: 24rem;
+  overflow-y: auto;
+  list-style: none;
+  border-top: 2px solid var(--text);
+  border-bottom: 1px solid var(--line-strong);
+  scrollbar-width: thin;
+}
+
+#feed-list > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.7rem;
+  padding: 0.7rem 0.25rem;
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+#feed-list > li + li { border-top: 1px solid var(--line); }
+
+#feed-list > li.is-cleared { color: var(--muted); }
+
+#feed-list > li.feed-empty {
+  display: block;
+  padding-block: 1.5rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.feed-time { color: var(--muted); font-size: 0.875rem; }
+.feed-device, .feed-tank { font-weight: 600; }
+.feed-event { font-size: 0.875rem; }
+
+#feed-status {
+  margin-top: 0.7rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+/* ---------- 8. Film stills (reduced motion, or no WebGL) ---------- */
+#film-stills {
+  display: none;
+  max-width: min(60rem, 100%);
+}
+
+html.reduced #film-stills { display: block; }
+
+#film-stills figure { margin: 1rem 0 0; }
+
+#film-still {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: var(--line);
+}
+
+/* No image until script.js has made one; the caption then carries the story. */
+#film-still:not([src]) { display: none; }
+
+#film-still-caption {
+  margin-top: 0.7rem;
+  line-height: 1.45;
+}
+
+.still-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+#still-counter {
+  font-family: var(--heading);
+  font-weight: 600;
+}
+
+/* ---------- 9. html.motion: pinning, fades and film overlays ---------- */
+
+/* Scroll length of each pinned section, in screens. */
+html.motion #plan { --screens: 4; }
+html.motion #inside { --screens: 4; }
+html.motion #demo { --screens: 3.5; }
+html.motion #film { --screens: 10; }
+
+html.motion .pin {
+  height: calc(var(--screens) * 100vh);
+}
+
+html.motion .pin-stage {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  height: 100vh;
+  height: 100dvh;
+  padding: calc(var(--topbar) + 1rem) var(--gutter) 1.5rem;
+  overflow: hidden;
+}
+
+/* The panel can never be clipped: past the stage height it scrolls inside itself. */
+html.motion .pin-panel {
+  max-height: 100%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) transparent;
+}
+
+html.motion .pin-steps {
+  gap: 0;
+}
+
+/* All the steps share one grid cell, so the panel is as tall as the tallest
+   step and does not jump as the steps change. Only .is-active shows. */
+html.motion .pin-step {
+  grid-area: 1 / 1;
+  padding-top: 0;
+  border-top: 0;
+  opacity: 0;
+  /* Not visibility: hidden. Screen readers must still reach every step, even
+     one the scroll position has not made active. */
+  pointer-events: none;
+  transform: translateY(14px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+html.motion .pin-step.is-active {
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+html.motion .pin-dots {
+  display: flex;
+  gap: 5px;
+}
+
+html.motion .pin-dots span {
+  display: block;
+  width: 1.4rem;
+  height: 4px;
+  background: var(--line-strong);
+  transition: background-color 0.25s ease;
+}
+
+html.motion .pin-dots span.is-active { background: var(--accent); }
+
+/* Keep room for the preview chip so the panel does not jump when it appears. */
+@media (min-width: 900px) {
+  html.motion .preview-slot { min-height: 2.2rem; }
+}
+
+html.motion .reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+html.motion .reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+html.motion .answer-cards .reveal:nth-child(2) { transition-delay: 0.1s; }
+html.motion .answer-cards .reveal:nth-child(3) { transition-delay: 0.2s; }
+
+html.motion #topbar {
+  transition: opacity 0.3s ease, visibility 0.3s;
+}
+
+html.motion #alert-badge::before {
+  animation: badge-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+  50% { opacity: 0.35; }
+}
+
+/* While the film plays, nothing covers the picture. */
+html.motion body[data-active-section="film"] #topbar,
+html.motion body[data-active-section="film"] #alert-badge {
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* --- The film stage --- */
+#film {
+  --bar: clamp(26px, 11vh, 110px);
+}
+
+html.motion #film .pin-stage {
+  display: block;
+  padding: 0;
+}
+
+html.motion #film-stills { display: none; }
+
+html.motion .film-vignette,
+html.motion .film-grain,
+html.motion .letterbox,
+html.motion #film-line,
+html.motion #film-app-icon {
+  display: block;
+  position: absolute;
+  pointer-events: none;
+}
+
+html.motion .film-vignette,
+html.motion .film-grain,
+html.motion #film-line {
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.film-vignette {
+  z-index: 2;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(4, 6, 12, 0.44) 100%);
+}
+
+/* Tiled noise. It carries its own transparency, so it needs no costly blending.
+   It moves by transform, which the graphics chip does without repainting. */
+.film-grain {
+  z-index: 3;
+  opacity: 0.16;
+  background-size: 128px 128px;
+}
+
+html.film-lite .film-grain { display: none; }
+
+html.motion .film-grain {
+  top: -100px;
+  left: -100px;
+  width: calc(100% + 200px);
+  height: calc(100% + 200px);
+  will-change: transform;
+  animation: grain-shift 0.9s steps(1, end) infinite;
+}
+
+@keyframes grain-shift {
+  0%   { transform: translate(0, 0); }
+  17%  { transform: translate(-60px, 45px); }
+  33%  { transform: translate(75px, -30px); }
+  50%  { transform: translate(-35px, -80px); }
+  67%  { transform: translate(90px, 65px); }
+  83%  { transform: translate(-85px, 20px); }
+}
+
+/* The red alert line */
+#film-line {
+  z-index: 4;
+  overflow: hidden;
+}
+
+#film-line-glow {
+  stroke: #d42020;
+  stroke-width: 8;
+  stroke-opacity: 0.4;
+}
+
+#film-line-core {
+  stroke: #ff5a5a;
+  stroke-width: 2;
+}
+
+#film-line-head {
+  fill: #ffffff;
+  stroke: #d42020;
+  stroke-width: 3;
+}
+
+/* The small phone that stands for the app. script.js sets its opacity. */
+#film-app-icon {
+  z-index: 5;
+  top: 50%;
+  right: clamp(14px, 3.5vw, 52px);
+  width: 56px;
+  height: 56px;
+  margin-top: -28px;
+  padding: 6px;
+  opacity: 0;
+  background: rgba(6, 10, 19, 0.74);
+  border: 1px solid rgba(238, 243, 250, 0.45);
+  border-radius: 14px;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+#film-app-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+#film-app-icon .phone-body {
+  fill: none;
+  stroke: #eef3fa;
+  stroke-width: 1.8;
+}
+
+#film-app-icon .phone-screen {
+  fill: rgba(238, 243, 250, 0.18);
+  transition: fill 0.2s ease;
+}
+
+#film-app-icon .phone-dot { fill: #eef3fa; }
+
+#film-app-icon.received {
+  border-color: #d42020;
+  box-shadow: 0 0 0 2px #d42020, 0 0 26px 7px rgba(212, 32, 32, 0.8);
+}
+
+#film-app-icon.received .phone-screen { fill: #d42020; }
+
+/* Letterbox bars. --lb comes from script.js: 0 is off-screen, 1 is in place. */
+html.motion .letterbox {
+  z-index: 6;
+  left: 0;
+  width: 100%;
+  height: var(--bar);
+  background: #000000;
+  will-change: transform;
+}
+
+html.motion .letterbox-top {
+  top: 0;
+  transform: translateY(calc((1 - var(--lb, 0)) * -100%));
+}
+
+html.motion .letterbox-bottom {
+  bottom: 0;
+  transform: translateY(calc((1 - var(--lb, 0)) * 100%));
+}
+
+/* No WebGL means no film to scroll through, so #film becomes the stills panel. */
+html.no-webgl #film.pin { height: auto; }
+
+html.no-webgl #film .pin-stage {
+  position: static;
+  height: auto;
+  padding: clamp(5.5rem, 14vh, 10rem) var(--gutter);
+}
+
+html.no-webgl .film-vignette,
+html.no-webgl .film-grain,
+html.no-webgl .letterbox,
+html.no-webgl #film-line,
+html.no-webgl #film-app-icon {
+  display: none;
+}
+
+html.no-webgl #film-stills { display: block; }
+
+/* Reduced motion: stop every leftover transition and animation. */
+html.reduced *,
+html.reduced *::before,
+html.reduced *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* ---------- 10. Narrow screens ---------- */
+
+/* Below 900px the 3D subject is shifted upward by script.js, so the panels
+   sit at the bottom and the upper 40% of the screen stays clear for it. */
+@media (max-width: 899px) {
+  html.motion .pin-stage {
+    align-items: flex-end;
+    justify-content: center;
+    padding: 0 var(--gutter) 0.75rem;
+  }
+
+  html.motion .pin-panel {
+    max-height: calc(60vh - 0.75rem);
+    max-height: calc(60dvh - 0.75rem);
+  }
+
+  .panel > * + * { margin-top: 0.75rem; }
+  .pin-panel > h2 { font-size: 1.5rem; margin-top: 0.5rem; }
+  html.motion .pin-steps { margin-top: 0.75rem; }
+
+  /* Space is tight here, so the chip's slot takes no room until it is needed. */
+  .preview-slot:has(#preview-chip[hidden]) { display: none; }
+
+  .flow > .panel,
+  .pin-panel,
+  .answer-layout {
+    margin-inline: auto;
+  }
+
+  .answer-layout { max-width: 44rem; }
+
+  /* The dl rows stack, as two columns would be too thin on a phone. */
+  .spec > div { grid-template-columns: minmax(0, 1fr); gap: 0; padding-block: 0.45rem; }
+  .spec { margin-top: 0.5rem; }
+}
+
+/* A phone on its side: too short for a bottom panel, so use the left side. */
+@media (max-width: 899px) and (max-height: 500px) and (orientation: landscape) {
+  html.motion .pin-stage {
+    align-items: center;
+    justify-content: flex-start;
+    padding: calc(var(--topbar) + 0.5rem) var(--gutter) 0.5rem;
+  }
+
+  html.motion .pin-panel {
+    max-width: 62%;
+    max-height: 100%;
+    margin-inline: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  :root { --topbar: 56px; }
+
+  /* A smaller badge on phones, so it does not cover the drone in the Live demo. */
+  #alert-badge {
+    top: calc(var(--topbar) + 6px);
+    gap: 0.4rem;
+    padding: 0.35rem 0.55rem;
+    font-size: 0.75rem;
+  }
+
+  #alert-badge::before {
+    width: 8px;
+    height: 8px;
+  }
+
+  #film {
+    --bar: clamp(18px, 7vh, 56px);
+  }
+
+  #film-app-icon {
+    width: 40px;
+    height: 40px;
+    margin-top: -20px;
+    padding: 4px;
+    border-radius: 10px;
+  }
+
+  #feed-list { max-height: 20rem; }
+
+  #feed-tanks > * { padding: 0.45rem; font-size: 0.8125rem; }
+
+  .demo-actions .btn { flex: 1 1 auto; }
+
+  #alert-badge { font-size: 0.875rem; }
+}
+
+@media (max-width: 480px) {
+  .tank-strip { grid-template-columns: minmax(0, 1fr); }
+
+  .tank-strip li,
+  .tank-strip li + li {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    padding: 0.5rem 0;
+    border-left: 0;
+  }
+
+  .tank-strip li + li { border-top: 1px solid var(--line); }
+  .tank-strip strong { display: inline; }
+
+  .brand { font-size: 0.9375rem; }
+}
